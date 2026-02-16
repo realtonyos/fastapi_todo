@@ -113,6 +113,7 @@ async def dashboard(
 ):
     """Веб-интерфейс: список задач текущего пользователя"""
     tasks = await get_tasks(
+        request=request,
         db=db,
         owner_id=current_user.id,
         skip=skip,
@@ -144,7 +145,6 @@ async def create_task_form(
 
 @router.post("/tasks/create", include_in_schema=False)
 async def create_task_web(
-    request: Request,
     title: str = Form(...),
     description: str = Form(None),
     db: AsyncSession = Depends(get_db),

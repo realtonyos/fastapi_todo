@@ -8,6 +8,12 @@
             <div class="card">
                 <div class="card-body">
                     <h2 class="card-title text-center mb-4">Вход в аккаунт</h2>
+
+                    {% if request.query_params.get('registered') %}
+                        <div class="alert alert-success">
+                            ✅ Регистрация успешна! Теперь вы можете войти.
+                        </div>
+                    {% endif %}
                     
                     {% if error %}
                         <div class="alert alert-danger">

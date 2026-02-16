@@ -41,7 +41,7 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: todo_db
       REDIS_URL: redis://redis:6379/0
-      SECRET_KEY: 
+      SECRET_KEY: 09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7
     depends_on:
       postgres:
         condition: service_healthy
@@ -62,7 +62,7 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=todo_db
-      - SECRET_KEY=
+      - SECRET_KEY=09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7
       - ENVIRONMENT=development   
     depends_on:
       redis:
@@ -82,7 +82,7 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=todo_db
-      - SECRET_KEY=
+      - SECRET_KEY=09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7
       - ENVIRONMENT=development
     depends_on:
       - redis
