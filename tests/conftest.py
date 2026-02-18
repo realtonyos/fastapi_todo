@@ -2,7 +2,9 @@ import pytest
 from typing import AsyncGenerator
 from httpx import ASGITransport, AsyncClient
 import asyncio
-import time
+from unittest.mock import AsyncMock
+import uuid
+import sys
 
 from sqlalchemy.pool import NullPool
 from sqlalchemy.ext.asyncio import (
@@ -18,19 +20,11 @@ from app.db.session import get_db
 from app.main import app
 
 
-@pytest.fixture(scope="session")
-def event_loop():
-    """Создаёт event loop для всей сессии."""
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    yield loop
-    time.sleep(0.1)
-    loop.run_until_complete(loop.shutdown_asyncgens())
-    loop.close()
-    asyncio.set_event_loop(None)
+if sys.platform == 'win32':
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture()
 async def test_engine() -> AsyncGenerator[AsyncEngine, None]:
     """Движок для тестовой базы данных."""
     test_db_url = settings.DATABASE_URL.replace("todo_db", "todo_test_db")
@@ -45,7 +39,7 @@ async def test_engine() -> AsyncGenerator[AsyncEngine, None]:
         await engine.dispose()
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture()
 async def create_tables(test_engine: AsyncEngine):
     """Создаёт таблицы один раз за сессию."""
     async with test_engine.begin() as conn:
@@ -90,6 +84,12 @@ async def client(session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
     async def override_get_db():
         yield session
 
+    # Мок для Redis
+    mock_redis = AsyncMock()
+    mock_redis.get.return_value = None
+    mock_redis.setex.return_value = None
+    app.state.redis = mock_redis
+
     app.dependency_overrides[get_db] = override_get_db
 
     try:
@@ -100,3 +100,30 @@ async def client(session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
             yield client
     finally:
         app.dependency_overrides.clear()
+
+
+@pytest.fixture
+async def test_user(client: AsyncClient):
+    unique_email = f"user{uuid.uuid4()}@example.com"
+    password = "testpass123"
+
+    # Регистрируем пользователя
+    await client.post('/api/v1/auth/register', json={
+        "email": unique_email,
+        "password": password
+    })
+
+    # Логинимся, чтобы получить токен
+    login_response = await client.post('/api/v1/auth/login', data={
+        "username": unique_email,
+        "password": password
+    })
+    token = login_response.json()["access_token"]
+
+    # Возвращаем всё нужное
+    return {
+        "email": unique_email,
+        "password": password,
+        "token": token,
+        "headers": {"Authorization": f"Bearer {token}"}
+    }

@@ -1,4 +1,5 @@
 import json
+from datetime import datetime
 
 from fastapi import Request
 from redis.asyncio import Redis
@@ -7,6 +8,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.task import Task
 from app.schemas.task import TaskCreate, TaskUpdate, TaskOut
+
+
+def json_serial(obj):
+    """Сериализатор для JSON, поддерживающий datetime."""
+    if isinstance(obj, datetime):
+        return obj.isoformat()
+    raise TypeError(f"Type {type(obj)} not serializable")
 
 
 async def invalidate_user_tasks_cache(redis: Redis, owner_id: int):
@@ -42,7 +50,7 @@ async def get_tasks(
     await redis.setex(
         cache_key,
         300,
-        json.dumps([t.model_dump() for t in tasks_out])
+        json.dumps([t.model_dump() for t in tasks_out], default=json_serial)
     )
 
     return tasks_out
@@ -71,7 +79,7 @@ async def create_task(
     db.add(new_task)
     await db.commit()
     await db.refresh(new_task)
-    invalidate_user_tasks_cache(redis=redis, owner_id=owner_id)
+    await invalidate_user_tasks_cache(redis=redis, owner_id=owner_id)
     return new_task
 
 

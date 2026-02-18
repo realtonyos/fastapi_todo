@@ -44,3 +44,52 @@ async def test_register_duplicate(client: AsyncClient):
     assert response.status_code == 400
     data = response.json()
     assert "detail" in data
+
+
+@pytest.mark.asyncio
+async def test_login_success(client: AsyncClient, test_user):
+
+    response = await client.post('/api/v1/auth/login', data={
+        "username": test_user["email"],
+        "password": test_user["password"]
+    })
+
+    assert response.status_code == 200
+    data = response.json()
+    assert "access_token" in data
+    assert data["token_type"] == "bearer"
+
+
+@pytest.mark.asyncio
+async def test_login_with_wrong_pass(client: AsyncClient, test_user):
+    login_data = {
+        "email": test_user["email"],
+        "password": "wrongpass"
+    }
+
+    response = await client.post('/api/v1/auth/login', data={
+        "username": login_data["email"],
+        "password": login_data["password"]
+    })
+
+    assert response.status_code == 401
+    data = response.json()
+    assert "detail" in data
+
+
+@pytest.mark.asyncio
+async def test_login_with_wrong_email(client: AsyncClient, test_user):
+    new_email = f"test{uuid.uuid4()}@example.com"
+    login_data = {
+        "email": new_email,
+        "password": test_user["password"]
+    }
+
+    response = await client.post('/api/v1/auth/login', data={
+        "username": login_data["email"],
+        "password": login_data["password"]
+    })
+
+    assert response.status_code == 401
+    data = response.json()
+    assert "detail" in data
